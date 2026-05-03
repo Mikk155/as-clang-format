@@ -18,7 +18,7 @@ The modifications are integrated into the Clang Tooling layer, specifically with
 
 ## 📦 Usage
 
-1.  **Obtain Binary**: Download `as-clang-format.exe` from the GitHub Actions artifacts of this repository.
+1.  **Obtain Binary**: Download `as-clang-format.exe` from the GitHub Releases of this repository with the tag ``asclang``.
 2.  **Configuration**: Place a `.clang-format` file in your project root.
 3.  **Recommended Style Settings**:
     ```yaml
@@ -26,6 +26,10 @@ The modifications are integrated into the Clang Tooling layer, specifically with
     BasedOnStyle: LLVM
     PointerAlignment: Left  # Results in: Type@ var
     ```
+
+## Building
+Go to [build-as-clang.yml](https://github.com/Mikk155/as-clang-format/actions/workflows/build-as-clang.yml) and press "Run Workflow" then a release with the tag ``asclang`` will be updated
+> Currently this only builds windows
 
 ---
 
