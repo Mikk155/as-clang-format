@@ -30,34 +30,3 @@ The modifications are integrated into the Clang Tooling layer, specifically with
 ## Building
 Go to [build-as-clang.yml](https://github.com/Mikk155/as-clang-format/actions/workflows/build-as-clang.yml) and press "Run Workflow" then a release with the tag ``asclang`` will be updated
 > Currently this only builds windows
-
----
-
-# AngelScript 格式化增强版 (as-clang-format)
-
-本仓库提供了一个专门针对 **AngelScript (AS)** 优化的定制版 `clang-format`。它解决了长期以来句柄符号（`@`）格式化不正确（如强制粘连或空格错误）的问题，为游戏脚本开发提供专业且易读的代码风格。
-
-## 🌟 主要改进
-
-* **智能句柄空格**: 完美处理句柄声明。在 `PointerAlignment: Left` 配置下，将 `xck::PersonInfo @p` 自动修正为 `xck::PersonInfo@ p`。
-* **泛型与模板支持**: 修复了模板内部结尾处的空格问题。确保生成 `cast<xck::PersonInfo@>` 而非 `cast<xck::PersonInfo@ >`。
-* **作用域与命名空间识别**: 准确识别跨命名空间的复杂类型，如 `xck::UnitInfo@` 或 `abc::BuildingInfo@`。
-* **防止句柄粘连**: 确保连续的句柄符保持为 `@ @`，防止被错误合并为单一标记，确保语法解析正确。
-
-## 🔧 技术实现
-
-相关修改已集成至 Clang Tooling 层，主要位于 `clang/lib/Format/TokenAnnotator.cpp`：
-1.  修改了 `spaceRequiredBetween` 函数，将 `@` 识别为类指针标记（`TT_PointerOrReference`）。
-2.  绕过了原生 Objective-C 规则对 AngelScript 句柄语法的干扰。
-3.  使句柄位置逻辑与标准的 `PointerAlignment` 样式配置保持同步。
-
-## 📦 使用说明
-
-1.  **获取程序**: 从本仓库 GitHub Actions 的构建产物中下载 `as-clang-format.exe`。
-2.  **配置方法**: 在你的项目根目录创建 `.clang-format` 配置文件。
-3.  **推荐配置**:
-    ```yaml
-    Language: Cpp
-    BasedOnStyle: LLVM
-    PointerAlignment: Left  # 实现效果: Type@ var
-    ```
