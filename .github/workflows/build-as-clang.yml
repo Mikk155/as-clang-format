@@ -36,6 +36,7 @@ jobs:
       - name: Upload
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: asclang
           files: build/Release/bin/as-clang-format.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
