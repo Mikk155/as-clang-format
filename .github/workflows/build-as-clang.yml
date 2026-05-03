@@ -30,9 +30,12 @@ jobs:
         run: ren build\Release\bin\clang-format.exe as-clang-format.exe
 
       - name: Upload
-        uses: actions/upload-artifact@v4
+        uses: softprops/action-gh-release@v3
         with:
           name: as-clang-format-windows
           # 注意：现在路径变到了根目录或 build 目录下，取决于 ren 的执行位置
           # 最保险的写法是直接指向重命名后的文件
           path: build/Release/bin/as-clang-format.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
