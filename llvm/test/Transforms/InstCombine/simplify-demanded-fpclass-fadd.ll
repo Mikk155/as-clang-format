@@ -490,7 +490,7 @@ define nofpclass(nzero) half @inferred_nan_output__fadd__no_pinf_no_nan__no_nan(
 define nofpclass(nzero) half @inferred_nan_output__fadd__no_pinf_no_nan__no_pinf_no_nan(half nofpclass(nan pinf) %x, half nofpclass(nan pinf) %y) {
 ; CHECK-LABEL: define nofpclass(nzero) half @inferred_nan_output__fadd__no_pinf_no_nan__no_pinf_no_nan(
 ; CHECK-SAME: half nofpclass(nan pinf) [[X:%.*]], half nofpclass(nan pinf) [[Y:%.*]]) {
-; CHECK-NEXT:    [[ADD:%.*]] = fadd half [[X]], [[Y]]
+; CHECK-NEXT:    [[ADD:%.*]] = fadd nnan half [[X]], [[Y]]
 ; CHECK-NEXT:    ret half [[ADD]]
 ;
   %add = fadd half %x, %y
@@ -500,7 +500,7 @@ define nofpclass(nzero) half @inferred_nan_output__fadd__no_pinf_no_nan__no_pinf
 define nofpclass(nzero) half @inferred_nan_output__fadd__no_ninf_no_nan__no_ninf_no_nan(half nofpclass(nan ninf) %x, half nofpclass(nan ninf) %y) {
 ; CHECK-LABEL: define nofpclass(nzero) half @inferred_nan_output__fadd__no_ninf_no_nan__no_ninf_no_nan(
 ; CHECK-SAME: half nofpclass(nan ninf) [[X:%.*]], half nofpclass(nan ninf) [[Y:%.*]]) {
-; CHECK-NEXT:    [[ADD:%.*]] = fadd half [[X]], [[Y]]
+; CHECK-NEXT:    [[ADD:%.*]] = fadd nnan half [[X]], [[Y]]
 ; CHECK-NEXT:    ret half [[ADD]]
 ;
   %add = fadd half %x, %y
@@ -2086,9 +2086,9 @@ define nofpclass(snan) half @qnan_result_demands_snan_rhs(i1 %cond, half %unknow
   ret half %result
 }
 
-attributes #0 = { "denormal-fp-math"="preserve-sign,preserve-sign" }
-attributes #1 = { "denormal-fp-math"="dynamic,dynamic" }
-attributes #2 = { "denormal-fp-math"="ieee,preserve-sign" }
-attributes #3 = { "denormal-fp-math"="preserve-sign,ieee" }
-attributes #4 = { "denormal-fp-math"="ieee,positive-zero" }
-attributes #5 = { "denormal-fp-math"="positive-zero,ieee" }
+attributes #0 = { denormal_fpenv(preservesign) }
+attributes #1 = { denormal_fpenv(dynamic) }
+attributes #2 = { denormal_fpenv(ieee|preservesign) }
+attributes #3 = { denormal_fpenv(preservesign|ieee) }
+attributes #4 = { denormal_fpenv(ieee|positivezero) }
+attributes #5 = { denormal_fpenv(positivezero|ieee) }

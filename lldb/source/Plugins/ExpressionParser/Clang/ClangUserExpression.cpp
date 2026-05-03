@@ -27,6 +27,7 @@
 #include "Plugins/TypeSystem/Clang/TypeSystemClang.h"
 #include "lldb/Core/Debugger.h"
 #include "lldb/Core/Module.h"
+#include "lldb/Expression/DiagnosticManager.h"
 #include "lldb/Expression/ExpressionSourceCode.h"
 #include "lldb/Expression/IRExecutionUnit.h"
 #include "lldb/Expression/IRInterpreter.h"
@@ -55,6 +56,8 @@
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclObjC.h"
 
+#include "clang/Basic/DiagnosticSema.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/BinaryFormat/Dwarf.h"
 
@@ -503,8 +506,8 @@ CppModuleConfiguration GetModuleConfig(lldb::LanguageType language,
            files.GetSize());
   if (log && log->GetVerbose()) {
     for (auto &f : files)
-      LLDB_LOGV(log, "[C++ module config] Analyzing support file: {0}",
-                f.GetPath());
+      LLDB_LOG_VERBOSE(log, "[C++ module config] Analyzing support file: {0}",
+                       f.GetPath());
   }
 
   // Try to create a configuration from the files. If there is no valid
@@ -944,6 +947,71 @@ bool ClangUserExpression::AddArguments(ExecutionContext &exe_ctx,
 lldb::ExpressionVariableSP ClangUserExpression::GetResultAfterDematerialization(
     ExecutionContextScope *exe_scope) {
   return m_result_delegate.GetVariable();
+}
+
+void ClangUserExpression::FixupCVRParseErrorDiagnostics(
+    DiagnosticManager &diagnostic_manager) const {
+  const bool is_fixable_cvr_error = llvm::any_of(
+      diagnostic_manager.Diagnostics(),
+      [](std::unique_ptr<Diagnostic> const &diag) {
+        switch (diag->GetCompilerID()) {
+        case clang::diag::err_member_function_call_bad_cvr:
+        case clang::diag::err_typecheck_assign_const_method:
+          return true;
+        default:
+          return false;
+        }
+      });
+
+  // Nothing to report.
+  if (!is_fixable_cvr_error)
+    return;
+
+  // If the user already tried ignoring function qualifiers but
+  // the expression still failed, we don't want to suggest the hint again.
+  if (m_options.GetCppIgnoreContextQualifiers()) {
+    // Hard to prove that we don't get here so don't emit a diagnostic n
+    // non-asserts builds. But we do want a signal in asserts builds.
+    assert(false &&
+           "CppIgnoreContextQualifiers didn't resolve compiler diagnostic.");
+    return;
+  }
+
+  diagnostic_manager.Printf(
+      lldb::eSeverityInfo,
+      "Possibly trying to mutate object in a const context. Try "
+      "running the expression with: expression --c++-ignore-context-qualifiers "
+      "-- %s",
+      !m_fixed_text.empty() ? m_fixed_text.c_str() : m_expr_text.c_str());
+}
+
+void ClangUserExpression::FixupTemplateLookupDiagnostics(
+    DiagnosticManager &diagnostic_manager) const {
+  if (llvm::none_of(diagnostic_manager.Diagnostics(),
+                    [](std::unique_ptr<Diagnostic> const &diag) {
+                      switch (diag->GetCompilerID()) {
+                      // FIXME: should we also be checking
+                      // clang::diag::err_no_member_template?
+                      case clang::diag::err_no_template:
+                      case clang::diag::err_non_template_in_template_id:
+                        return true;
+                      default:
+                        return false;
+                      }
+                    }))
+    return;
+
+  diagnostic_manager.AddDiagnostic(
+      "Naming template instantiation not yet supported. Template functions "
+      "can be invoked via their mangled name. For example, using "
+      "`_Z3fooIiEvi(123)` for `foo<int>(123)`",
+      lldb::eSeverityInfo, eDiagnosticOriginLLDB);
+}
+
+void ClangUserExpression::FixupParseErrorDiagnostics(
+    DiagnosticManager &diagnostic_manager) const {
+  FixupCVRParseErrorDiagnostics(diagnostic_manager);
+  FixupTemplateLookupDiagnostics(diagnostic_manager);
 }
 
 char ClangUserExpression::ClangUserExpressionHelper::ID;

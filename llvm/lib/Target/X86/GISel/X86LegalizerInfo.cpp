@@ -100,14 +100,10 @@ X86LegalizerInfo::X86LegalizerInfo(const X86Subtarget &STI,
       .widenScalarOrEltToNextPow2(0, /*Min=*/8)
       .clampScalarOrElt(0, s8, sMaxScalar)
       .moreElementsToNextPow2(0)
-      .clampMinNumElements(0, s8, 16)
-      .clampMinNumElements(0, s16, 8)
-      .clampMinNumElements(0, s32, 4)
-      .clampMinNumElements(0, s64, 2)
-      .clampMaxNumElements(0, s8, HasAVX512 ? 64 : (HasAVX ? 32 : 16))
-      .clampMaxNumElements(0, s16, HasAVX512 ? 32 : (HasAVX ? 16 : 8))
-      .clampMaxNumElements(0, s32, HasAVX512 ? 16 : (HasAVX ? 8 : 4))
-      .clampMaxNumElements(0, s64, HasAVX512 ? 8 : (HasAVX ? 4 : 2))
+      .clampNumElements(0, v16s8, s8MaxVector)
+      .clampNumElements(0, v8s16, s16MaxVector)
+      .clampNumElements(0, v4s32, s32MaxVector)
+      .clampNumElements(0, v2s64, s64MaxVector)
       .clampMaxNumElements(0, p0,
                            Is64Bit ? s64MaxVector.getNumElements()
                                    : s32MaxVector.getNumElements())
@@ -256,14 +252,10 @@ X86LegalizerInfo::X86LegalizerInfo(const X86Subtarget &STI,
       .legalFor(HasSSE2, {v16s8, v8s16, v4s32, v2s64})
       .legalFor(HasAVX, {v32s8, v16s16, v8s32, v4s64})
       .legalFor(HasAVX512, {v64s8, v32s16, v16s32, v8s64})
-      .clampMinNumElements(0, s8, 16)
-      .clampMinNumElements(0, s16, 8)
-      .clampMinNumElements(0, s32, 4)
-      .clampMinNumElements(0, s64, 2)
-      .clampMaxNumElements(0, s8, HasAVX512 ? 64 : (HasAVX ? 32 : 16))
-      .clampMaxNumElements(0, s16, HasAVX512 ? 32 : (HasAVX ? 16 : 8))
-      .clampMaxNumElements(0, s32, HasAVX512 ? 16 : (HasAVX ? 8 : 4))
-      .clampMaxNumElements(0, s64, HasAVX512 ? 8 : (HasAVX ? 4 : 2))
+      .clampNumElements(0, v16s8, s8MaxVector)
+      .clampNumElements(0, v8s16, s16MaxVector)
+      .clampNumElements(0, v4s32, s32MaxVector)
+      .clampNumElements(0, v2s64, s64MaxVector)
       .widenScalarToNextPow2(0, /*Min=*/32)
       .clampScalar(0, s8, sMaxScalar)
       .scalarize(0);
@@ -400,6 +392,12 @@ X86LegalizerInfo::X86LegalizerInfo(const X86Subtarget &STI,
     // TODO - SSE41/AVX2/AVX512F/AVX512BW vector extensions
   }
 
+  for (unsigned Op : {G_FPEXTLOAD, G_FPTRUNCSTORE}) {
+    auto &Action = getActionDefinitionsBuilder(Op);
+    Action.legalForTypesWithMemDesc(
+        UseX87, {{s80, p0, s32, 1}, {s80, p0, s64, 1}, {s64, p0, s32, 1}});
+  }
+
   // sext, zext, and anyext
   getActionDefinitionsBuilder(G_ANYEXT)
       .legalFor({s8, s16, s32, s128})
@@ -454,12 +452,14 @@ X86LegalizerInfo::X86LegalizerInfo(const X86Subtarget &STI,
       .legalFor(HasSSE2, {{s64, s32}})
       .legalFor(HasAVX, {{v4s64, v4s32}})
       .legalFor(HasAVX512, {{v8s64, v8s32}})
+      .lowerFor(UseX87, {{s64, s32}, {s80, s32}, {s80, s64}})
       .libcall();
 
   getActionDefinitionsBuilder(G_FPTRUNC)
       .legalFor(HasSSE2, {{s32, s64}})
       .legalFor(HasAVX, {{v4s32, v4s64}})
-      .legalFor(HasAVX512, {{v8s32, v8s64}});
+      .legalFor(HasAVX512, {{v8s32, v8s64}})
+      .lowerFor(UseX87, {{s32, s64}, {s32, s80}, {s64, s80}});
 
   getActionDefinitionsBuilder(G_SITOFP)
       .legalFor(HasSSE1, {{s32, s32}})

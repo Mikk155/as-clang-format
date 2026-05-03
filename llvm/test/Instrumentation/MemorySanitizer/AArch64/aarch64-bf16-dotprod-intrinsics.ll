@@ -5,8 +5,7 @@
 ; simplified to only have the cases that directly pass the function parameters
 ; to the intrinsic.
 ;
-; Strictly handled:
-; - llvm.aarch64.neon.bfmmla
+; Strictly handled: (none)
 ;
 ; Heuristically handled: (none)
 
@@ -71,21 +70,17 @@ define <4 x float> @test_vbfmmlaq_f32(<4 x float> %r, <8 x bfloat> %a, <8 x bflo
 ; CHECK-NEXT:    [[TMP1:%.*]] = load <8 x i16>, ptr getelementptr (i8, ptr @__msan_param_tls, i64 16), align 8
 ; CHECK-NEXT:    [[TMP2:%.*]] = load <8 x i16>, ptr getelementptr (i8, ptr @__msan_param_tls, i64 32), align 8
 ; CHECK-NEXT:    call void @llvm.donothing()
-; CHECK-NEXT:    [[TMP3:%.*]] = bitcast <4 x i32> [[TMP0]] to i128
-; CHECK-NEXT:    [[_MSCMP:%.*]] = icmp ne i128 [[TMP3]], 0
-; CHECK-NEXT:    [[TMP4:%.*]] = bitcast <8 x i16> [[TMP1]] to i128
-; CHECK-NEXT:    [[_MSCMP1:%.*]] = icmp ne i128 [[TMP4]], 0
-; CHECK-NEXT:    [[_MSOR:%.*]] = or i1 [[_MSCMP]], [[_MSCMP1]]
-; CHECK-NEXT:    [[TMP5:%.*]] = bitcast <8 x i16> [[TMP2]] to i128
-; CHECK-NEXT:    [[_MSCMP2:%.*]] = icmp ne i128 [[TMP5]], 0
-; CHECK-NEXT:    [[_MSOR3:%.*]] = or i1 [[_MSOR]], [[_MSCMP2]]
-; CHECK-NEXT:    br i1 [[_MSOR3]], label %[[BB6:.*]], label %[[BB7:.*]], !prof [[PROF1:![0-9]+]]
-; CHECK:       [[BB6]]:
-; CHECK-NEXT:    call void @__msan_warning_noreturn() #[[ATTR5:[0-9]+]]
-; CHECK-NEXT:    unreachable
-; CHECK:       [[BB7]]:
+; CHECK-NEXT:    [[TMP3:%.*]] = icmp eq <8 x i16> [[TMP1]], zeroinitializer
+; CHECK-NEXT:    [[TMP4:%.*]] = select <8 x i1> [[TMP3]], <8 x bfloat> splat (bfloat 0xR3F80), <8 x bfloat> zeroinitializer
+; CHECK-NEXT:    [[TMP5:%.*]] = icmp eq <8 x i16> [[TMP2]], zeroinitializer
+; CHECK-NEXT:    [[TMP6:%.*]] = select <8 x i1> [[TMP5]], <8 x bfloat> splat (bfloat 0xR3F80), <8 x bfloat> zeroinitializer
+; CHECK-NEXT:    [[TMP7:%.*]] = call <4 x float> @llvm.aarch64.neon.bfmmla(<4 x float> zeroinitializer, <8 x bfloat> [[TMP4]], <8 x bfloat> [[TMP6]])
+; CHECK-NEXT:    [[TMP10:%.*]] = fcmp ult <4 x float> [[TMP7]], splat (float 3.500000e+00)
+; CHECK-NEXT:    [[TMP12:%.*]] = icmp ne <4 x i32> [[TMP0]], zeroinitializer
+; CHECK-NEXT:    [[TMP13:%.*]] = or <4 x i1> [[TMP10]], [[TMP12]]
+; CHECK-NEXT:    [[TMP14:%.*]] = sext <4 x i1> [[TMP13]] to <4 x i32>
 ; CHECK-NEXT:    [[VBFMMLAQ_V3_I:%.*]] = call <4 x float> @llvm.aarch64.neon.bfmmla(<4 x float> [[R]], <8 x bfloat> [[A]], <8 x bfloat> [[B]])
-; CHECK-NEXT:    store <4 x i32> zeroinitializer, ptr @__msan_retval_tls, align 8
+; CHECK-NEXT:    store <4 x i32> [[TMP14]], ptr @__msan_retval_tls, align 8
 ; CHECK-NEXT:    ret <4 x float> [[VBFMMLAQ_V3_I]]
 ;
 entry:
@@ -152,6 +147,3 @@ declare <4 x float> @llvm.aarch64.neon.bfdot.v4f32.v8bf16(<4 x float>, <8 x bflo
 declare <4 x float> @llvm.aarch64.neon.bfmmla(<4 x float>, <8 x bfloat>, <8 x bfloat>)
 declare <4 x float> @llvm.aarch64.neon.bfmlalb(<4 x float>, <8 x bfloat>, <8 x bfloat>)
 declare <4 x float> @llvm.aarch64.neon.bfmlalt(<4 x float>, <8 x bfloat>, <8 x bfloat>)
-;.
-; CHECK: [[PROF1]] = !{!"branch_weights", i32 1, i32 1048575}
-;.

@@ -179,6 +179,10 @@ public:
 
   llvm::StringRef GetFilename() const { return m_filename; }
 
+protected:
+  void FixupParseErrorDiagnostics(
+      DiagnosticManager &diagnostic_manager) const override;
+
 private:
   /// Populate m_in_cplusplus_method and m_in_objectivec_method based on the
   /// environment.
@@ -207,6 +211,12 @@ private:
 
   lldb::addr_t GetCppObjectPointer(lldb::StackFrameSP frame,
                                    llvm::StringRef object_name, Status &err);
+
+  void
+  FixupCVRParseErrorDiagnostics(DiagnosticManager &diagnostic_manager) const;
+
+  void
+  FixupTemplateLookupDiagnostics(DiagnosticManager &diagnostic_manager) const;
 
   /// Defines how the current expression should be wrapped.
   ClangExpressionSourceCode::WrapKind GetWrapKind() const;
